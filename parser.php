@@ -44,6 +44,10 @@ function getContactsUrl(&$pageCrawler, $parentUrl) {
 function getPhoneNumbers(&$pageCrawler, $phoneNumberRegexes, $isHrefSearchingEnabled) {
     $phoneNumbers = [];
     $tagsToCheck = ['a', "tr", "span", "li", "p"];
+    $bannedNumbers = [
+        "380000000000",
+        "380990000000",
+    ];
     $currentRegex = $phoneNumberRegexes[0];
 
     //check each tag for phone number in ther text
@@ -98,7 +102,8 @@ function getPhoneNumbers(&$pageCrawler, $phoneNumberRegexes, $isHrefSearchingEna
         $loopNumber = trim($loopNumber);
         $phoneNumbers[$key] = $loopNumber;
 
-        if (strlen($loopNumber) < 10) {
+        if (strlen($loopNumber) < 10 ||
+            in_array($loopNumber, $bannedNumbers)) {
             unset($phoneNumbers[$key]);
         }
     }
@@ -126,6 +131,12 @@ function getPhoneNumbers(&$pageCrawler, $phoneNumberRegexes, $isHrefSearchingEna
 function getEmails(&$pageCrawler, $emailsRegex, $isHrefSearchingEnabled) {
     $emails = [];
     $tagsToCheck = ["a", "tr", "li"];
+    $bannedEmails = [
+        "support@support.com.ua", 
+        "example@support.com", 
+        "support@mail.com",
+        "example@mail.com"
+    ];
 
     foreach ($tagsToCheck as $key => $tag) {
         $pageCrawler->filter($tag)->each(function ($node) use (&$emails, $emailsRegex) {
@@ -156,7 +167,8 @@ function getEmails(&$pageCrawler, $emailsRegex, $isHrefSearchingEnabled) {
 
     foreach ($emails as $key => $email) {
         $emails[$key] = str_replace("%20", "", $email);
-        if (strlen($email) > 40 || 
+        if (strlen($email) > 40 ||
+        in_array($email, $bannedEmails) ||
         str_contains($email, "png") || 
         str_contains($email, "jpg") ||
         str_contains($email, "webp")) {
@@ -232,8 +244,6 @@ $client = new Client();
 
 //some init settings
 $isHrefSearchingEnabled = true;
-$saveNumbersInQuotes = false;
-$saveEmailsInQuotes = false;
 $shopsHolderUrl = 'https://shop-express.ua/ukr/examples/';
 $crawler = $client->request('GET', $shopsHolderUrl);
 
@@ -268,25 +278,17 @@ foreach ($shopsUrlToScrap as $key => $shopUrl) {
     $csvOutputArray[] = $shopUrl;
 
     //insert emails with formatting into string 
-    $emailsString = "";
     foreach ($scrappedData["emails"] as $key => $email) {
-        $separator = next($scrappedData["emails"]) ? ";" : "";
-        $emailsString = sprintf("%s%s%s", $emailsString, $email, $separator);
+        $csvOutputArray[] = $email;
     }
-    if (count($scrappedData["emails"]) != 0 && $saveEmailsInQuotes == true) $emailsString = "\"".$emailsString."\"";
-    $csvOutputArray[] = $emailsString;
 
     //insert phone numbers with formatting into string
-    $phoneNumbersString = "";
     foreach ($scrappedData["phoneNumbers"] as $key => $phoneNumber) {
-        $separator = next($scrappedData["phoneNumbers"]) ? ";" : "";
-        $phoneNumbersString = sprintf("%s%s%s", $phoneNumbersString, $phoneNumber, $separator);
+        $csvOutputArray[] = $phoneNumber;
     }
-    if (count($scrappedData["phoneNumbers"]) != 0 && $saveNumbersInQuotes == true) $phoneNumbersString = "\"".$phoneNumbersString."\"";
-    $csvOutputArray[] = $phoneNumbersString;
 
     //write info into csv file
-    fputcsv($fp, $csvOutputArray);
+    fputcsv($fp, $csvOutputArray, ";");
 
     $scrappedData["emails"] = [];
     $scrappedData["phoneNumbers"] = [];    

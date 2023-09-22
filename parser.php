@@ -245,9 +245,11 @@ $client = new Client();
 //some init settings
 $isHrefSearchingEnabled = true;
 $shopsHolderUrl = 'https://shop-express.ua/ukr/examples/';
-$crawler = $client->request('GET', $shopsHolderUrl);
+$reservedEmailColumns = 7;
+$reservedPhoneNumbersColumns = 7;
 
 //getting amount of pages in site
+$crawler = $client->request('GET', $shopsHolderUrl);
 $amountOfPages = trim($crawler->filter("#menu-items-all > div.row.pagination > div > a:last-child")->text());
 $pageUrlPrefix = "page-";
 
@@ -263,7 +265,19 @@ for ($i = 1; $i <= $amountOfPages; $i++) {
 $fp = fopen('contacts.csv', 'w');
 
 //write headers
-// fputcsv($fp, ["URL", "Emails", "Phone numbers"]);
+$header = [];
+$header[] = "";
+$header[] = "URL";
+for ($i = 0; $i < $reservedEmailColumns; $i++) {
+    if ($i == 0) $header[] = "Emails ({$reservedEmailColumns} columns reserved)";
+    else $header[] = "";
+}
+for ($i = 0; $i < $reservedPhoneNumbersColumns; $i++) {
+    if ($i == 0) $header[] = "Phone numbers ({$reservedPhoneNumbersColumns} columns reserved)";
+    else $header[] = "";
+}
+fputcsv($fp, $header, ";");
+
 
 foreach ($shopsUrlToScrap as $key => $shopUrl) {
     $csvOutputArray = [];
@@ -275,16 +289,25 @@ foreach ($shopsUrlToScrap as $key => $shopUrl) {
     }
     echo "\n-------------------\n\n";
     
+    $csvOutputArray[] = "";
     $csvOutputArray[] = $shopUrl;
 
-    //insert emails with formatting into string 
-    foreach ($scrappedData["emails"] as $key => $email) {
-        $csvOutputArray[] = $email;
+    //insert emails 
+    for ($i = 0; $i < $reservedEmailColumns; $i++) {
+        if ($i < count($scrappedData["emails"])) {
+            $csvOutputArray[] = $scrappedData["emails"][$i];
+        } else {
+            $csvOutputArray[] = "";
+        }
     }
 
-    //insert phone numbers with formatting into string
-    foreach ($scrappedData["phoneNumbers"] as $key => $phoneNumber) {
-        $csvOutputArray[] = $phoneNumber;
+    //insert phone numbers 
+    for ($i = 0; $i < $reservedPhoneNumbersColumns; $i++) {
+        if ($i < count($scrappedData["phoneNumbers"])) {
+            $csvOutputArray[] = $scrappedData["phoneNumbers"][$i];
+        } else {
+            $csvOutputArray[] = "";
+        }
     }
 
     //write info into csv file

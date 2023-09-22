@@ -104,6 +104,11 @@ function getPhoneNumbers(&$pageCrawler, $phoneNumberRegexes, $isHrefSearchingEna
     }
     $phoneNumbers = array_values(array_unique(array_values($phoneNumbers)));
 
+    //if number starts with 044..., or, for example 063... add 38 to it
+    foreach ($phoneNumbers as $key => $number) {
+        $phoneNumbers[$key] = $number[0] === "0" && $number[1] !== "8" ? "38{$number}" : $number;
+    }
+
     foreach ($phoneNumbers as $key => $number) {
         echo "Number:".$number." Strlen: ".strlen($number)."\n";
     }
@@ -227,8 +232,8 @@ $client = new Client();
 
 //some init settings
 $isHrefSearchingEnabled = true;
-$saveNumbersInQuotes = true;
-$saveEmailsInQuotes = true;
+$saveNumbersInQuotes = false;
+$saveEmailsInQuotes = false;
 $shopsHolderUrl = 'https://shop-express.ua/ukr/examples/';
 $crawler = $client->request('GET', $shopsHolderUrl);
 
@@ -248,7 +253,7 @@ for ($i = 1; $i <= $amountOfPages; $i++) {
 $fp = fopen('contacts.csv', 'w');
 
 //write headers
-fputcsv($fp, ["URL", "Emails", "Phone numbers"]);
+// fputcsv($fp, ["URL", "Emails", "Phone numbers"]);
 
 foreach ($shopsUrlToScrap as $key => $shopUrl) {
     $csvOutputArray = [];

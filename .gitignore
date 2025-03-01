@@ -1,3 +1,4 @@
-vendor
-contacts.csv
+*.csv
 composer.lock
+.idea
+vendor

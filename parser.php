@@ -203,7 +203,7 @@ function getEmailsAndPhoneNumbersFromUrl(&$crawlerClient, $url, $isHrefSearching
         '/[\s]*[\+][(]?[0-9\s]{1,3}[)]?[\s]?[(]?[0-9\s]{0,3}[)]?[\-\s0-9]{7,10}[\s]*/',
         '/[(]?[0][0-9]{0,2}[)]?[0-9\s-]{5,12}/'
     ];
-    $emailRegex = '/[a-zA-Z0-9._%+-]{2,}@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,5}/';
+    $emailRegex = '/[a-zA-Z0-9._%+-]{2,}@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,15}/';
 
     //first look at a contacts page
     $crawler = $crawlerClient->request('GET', $url);
@@ -248,12 +248,12 @@ $shopsHolderUrl = 'https://shop-express.ua/ukr/examples/';
 $reservedEmailColumns = 7;
 $reservedPhoneNumbersColumns = 7;
 
-//getting amount of pages in site
+//getting number of pages in site
 $crawler = $client->request('GET', $shopsHolderUrl);
 $amountOfPages = trim($crawler->filter("#menu-items-all > div.row.pagination > div > a:last-child")->text());
 $pageUrlPrefix = "page-";
 
-//get urls of shops which are need to be scrapped
+//get urls of shops which are necessary to be scrapped
 $shopsUrlToScrap = [];
 for ($i = 1; $i <= $amountOfPages; $i++) {
     $crawler = $client->request('GET', sprintf("%s%s%s", $shopsHolderUrl, $pageUrlPrefix, $i));
@@ -262,24 +262,16 @@ for ($i = 1; $i <= $amountOfPages; $i++) {
     });
 }
 
-$fp = fopen('contacts.csv', 'w');
+$date           = date('d_m_Y');
+$fpEmails       = fopen("emails_$date.csv", 'w');
+$fpPhoneNumbers = fopen("phone_numbers_$date.csv", 'w');
 
 //write headers
-$header = [];
-$header[] = "";
-$header[] = "URL";
-for ($i = 0; $i < $reservedEmailColumns; $i++) {
-    if ($i == 0) $header[] = "Emails ({$reservedEmailColumns} columns reserved)";
-    else $header[] = "";
-}
-for ($i = 0; $i < $reservedPhoneNumbersColumns; $i++) {
-    if ($i == 0) $header[] = "Phone numbers ({$reservedPhoneNumbersColumns} columns reserved)";
-    else $header[] = "";
-}
-fputcsv($fp, $header, ";");
-
+fputcsv($fpEmails, ['site', 'email'], ";");
+fputcsv($fpPhoneNumbers, ['site', 'phone_number'], ";");
 
 foreach ($shopsUrlToScrap as $key => $shopUrl) {
+    $scrappedData = [];
     $csvOutputArray = [];
     echo sprintf("%s from %s (%s)", $key + 1, count($shopsUrlToScrap), $shopUrl);
     try {
@@ -288,34 +280,17 @@ foreach ($shopsUrlToScrap as $key => $shopUrl) {
         echo "Can`t connect to server!\n";
     }
     echo "\n-------------------\n\n";
-    
-    $csvOutputArray[] = "";
-    $csvOutputArray[] = $shopUrl;
 
-    //insert emails 
-    for ($i = 0; $i < $reservedEmailColumns; $i++) {
-        if ($i < count($scrappedData["emails"])) {
-            $csvOutputArray[] = $scrappedData["emails"][$i];
-        } else {
-            $csvOutputArray[] = "";
-        }
+    //insert emails
+    foreach ($scrappedData["emails"] as $email) {
+        fputcsv($fpEmails, [$shopUrl, $email], ";");
     }
-
-    //insert phone numbers 
-    for ($i = 0; $i < $reservedPhoneNumbersColumns; $i++) {
-        if ($i < count($scrappedData["phoneNumbers"])) {
-            $csvOutputArray[] = $scrappedData["phoneNumbers"][$i];
-        } else {
-            $csvOutputArray[] = "";
-        }
+    //insert phone numbers
+    foreach ($scrappedData["phoneNumbers"] as $phoneNumber) {
+        fputcsv($fpPhoneNumbers, [$shopUrl, $phoneNumber], ";");
     }
-
-    //write info into csv file
-    fputcsv($fp, $csvOutputArray, ";");
-
-    $scrappedData["emails"] = [];
-    $scrappedData["phoneNumbers"] = [];    
 }
 
-fclose($fp);
+fclose($fpEmails);
+fclose($fpPhoneNumbers);
 
